@@ -26,6 +26,7 @@ const getUsersWithMessages = () => {
 // Save user info when they send their first message
 const saveUserInfo = (user) => {
   messageStorage.saveMessageUser(user.id, {
+    id: user.id,
     name: user.name,
     email: user.email
   });
@@ -109,6 +110,10 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  useEffect(() => {
+    loadMessages();
+  }, [user, backendAvailable]);
+
   const sendMessage = async (text) => {
     if (!user || user.isAdmin || user.is_admin) return;
     
@@ -155,37 +160,28 @@ export const MessageProvider = ({ children }) => {
           type: 'message'
         } 
       }));
+
+      // Send auto-reply only for the first message or if no admin has replied yet
+      const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
+      
+      if (!hasAdminReplied) {
+        setTimeout(() => {
+          const reply = {
+            id: Date.now() + 1,
+            sender: 'admin',
+            text: "Thanks for your message! An admin will review it shortly and get back to you.",
+            timestamp: new Date().toISOString(),
+            isAutoReply: true
+          };
+          
+          const messagesWithReply = [...updatedMessages, reply];
+          setConversations(prev => ({ ...prev, [user.id]: messagesWithReply }));
+          messageStorage.saveUserMessages(user.id, messagesWithReply);
+        }, 1000);
+      }
     } catch (error) {
       console.error('❌ Failed to send message:', error);
       throw error;
-    }
-
-    // Trigger notification for admins
-    window.dispatchEvent(new CustomEvent('newMessage', { 
-      detail: { 
-        senderId: user.id, 
-        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-        type: 'message'
-      } 
-    }));
-
-    // Send auto-reply only for the first message or if no admin has replied yet
-    const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
-    
-    if (!hasAdminReplied) {
-      setTimeout(() => {
-        const reply = {
-          id: Date.now() + 1,
-          sender: 'admin',
-          text: "Thanks for your message! An admin will review it shortly and get back to you.",
-          timestamp: new Date().toISOString(),
-          isAutoReply: true
-        };
-        
-        const messagesWithReply = [...updatedMessages, reply];
-        setConversations(prev => ({ ...prev, [user.id]: messagesWithReply }));
-        messageStorage.saveUserMessages(user.id, messagesWithReply);
-      }, 1000);
     }
   };
 
@@ -214,7 +210,6 @@ export const MessageProvider = ({ children }) => {
         isAutoReply: false
       };
 
-
       const userMessages = conversations[userId] || [];
       const updatedMessages = [...userMessages, newMessage];
       
@@ -234,23 +229,6 @@ export const MessageProvider = ({ children }) => {
       console.error('❌ Failed to send admin message:', error);
       throw error;
     }
-
-    const userMessages = conversations[userId] || [];
-    const updatedMessages = [...userMessages, newMessage];
-    
-    // Update state immediately
-    setConversations(prev => ({ ...prev, [userId]: updatedMessages }));
-    localStorage.setItem(`autocare_messages_${userId}`, JSON.stringify(updatedMessages));
-
-    // Trigger notification for the user
-    window.dispatchEvent(new CustomEvent('newMessage', { 
-      detail: { 
-        senderId: user.id, 
-        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-        type: 'message'
-      } 
-    }));
-
   };
 
   // Function to refresh users list for admin
