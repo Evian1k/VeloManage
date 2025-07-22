@@ -42,6 +42,21 @@ const AdminMessages = () => {
     return () => window.removeEventListener('newUserMessage', handleNewUserMessage);
   }, [refreshUsersWithMessages]);
 
+  // Update conversations when new messages arrive
+  useEffect(() => {
+    // This will trigger re-render when conversations update
+  }, [conversations]);
+
+  // Listen for new user messages
+  useEffect(() => {
+    const handleNewUserMessage = () => {
+      refreshUsersWithMessages();
+    };
+
+    window.addEventListener('newUserMessage', handleNewUserMessage);
+    return () => window.removeEventListener('newUserMessage', handleNewUserMessage);
+  }, [refreshUsersWithMessages]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

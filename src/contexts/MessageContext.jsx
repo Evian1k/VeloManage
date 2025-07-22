@@ -31,7 +31,6 @@ const saveUserInfo = (user) => {
   });
 };
 
-
 export const MessageProvider = ({ children }) => {
   const { user, backendAvailable } = useAuth();
   const [conversations, setConversations] = useState({});
@@ -109,10 +108,6 @@ export const MessageProvider = ({ children }) => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    loadMessages();
-  }, [user, backendAvailable]);
 
   const sendMessage = async (text) => {
     if (!user || user.isAdmin || user.is_admin) return;
