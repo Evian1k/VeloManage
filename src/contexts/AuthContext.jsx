@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { userStorage, initializeStorage } from '@/utils/storage';
 
 const AuthContext = createContext();
 
@@ -48,9 +49,13 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('autocare_user');
+    // Initialize storage system
+    initializeStorage();
+    
+    // Load saved user
+    const savedUser = userStorage.getCurrentUser();
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      setUser(savedUser);
     }
     setLoading(false);
   }, []);
@@ -79,7 +84,7 @@ export const AuthProvider = ({ children }) => {
       };
       
       setUser(userData);
-      localStorage.setItem('autocare_user', JSON.stringify(userData));
+      userStorage.saveCurrentUser(userData);
       return userData;
     } else {
       // Regular user login (any email/password combination)
