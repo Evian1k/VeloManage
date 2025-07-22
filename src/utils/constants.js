@@ -51,10 +51,10 @@ export const USER_ROLES = {
 // Admin Users (for demo purposes)
 export const ADMIN_USERS = [
   'emmanuel.evian@autocare.com',
-  'joel.nganga@autocare.com',
+  'joel.nganga@autocare.com', 
   'ibrahim.mohamud@autocare.com',
-  'patience.karanjah@autocare.com',
-  'admin@autocare.com'
+  'patience.karanja@autocare.com',
+  'joyrose.kinuthia@autocare.com'
 ];
 
 // Spare Parts by Service Type

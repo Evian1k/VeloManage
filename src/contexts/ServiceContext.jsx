@@ -154,6 +154,16 @@ export const ServiceProvider = ({ children }) => {
     
     const request = updatedRequests.find(req => req.id === requestId);
     if (request) {
+      // Trigger notification for service update
+      window.dispatchEvent(new CustomEvent('serviceUpdate', { 
+        detail: { 
+          requestId, 
+          status,
+          type: 'service',
+          userId: request.userId
+        } 
+      }));
+      
       const notification = {
         id: `notif_${Date.now()}`,
         type: 'status_update',

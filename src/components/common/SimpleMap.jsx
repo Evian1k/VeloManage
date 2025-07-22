@@ -8,8 +8,8 @@ const SimpleMap = ({
   showRoute = false 
 }) => {
   // Simple coordinate system - convert lat/lng to pixels
-  const mapWidth = 400;
-  const mapHeight = 300;
+  const mapWidth = 500;
+  const mapHeight = 350;
   
   // NYC area bounds for simulation
   const bounds = {
@@ -65,15 +65,28 @@ const SimpleMap = ({
       </div>
 
       {/* Simple Map Canvas */}
-      <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 overflow-hidden rounded-lg">
         <svg width={mapWidth} height={mapHeight} className="w-full h-auto">
           {/* Grid pattern to simulate streets */}
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
               <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#374151" strokeWidth="1" opacity="0.3"/>
             </pattern>
+            <pattern id="bigGrid" width="120" height="120" patternUnits="userSpaceOnUse">
+              <path d="M 120 0 L 0 0 0 120" fill="none" stroke="#4b5563" strokeWidth="2" opacity="0.4"/>
+            </pattern>
           </defs>
           <rect width="100%" height="100%" fill="url(#grid)" />
+          <rect width="100%" height="100%" fill="url(#bigGrid)" />
+          
+          {/* City landmarks simulation */}
+          <rect x="50" y="50" width="60" height="40" fill="#1f2937" stroke="#374151" strokeWidth="1" opacity="0.6" />
+          <rect x="200" y="120" width="80" height="50" fill="#1f2937" stroke="#374151" strokeWidth="1" opacity="0.6" />
+          <rect x="350" y="200" width="70" height="35" fill="#1f2937" stroke="#374151" strokeWidth="1" opacity="0.6" />
+          
+          {/* Water/park areas */}
+          <ellipse cx="400" cy="100" rx="30" ry="20" fill="#1e40af" opacity="0.3" />
+          <ellipse cx="150" cy="250" rx="40" ry="25" fill="#059669" opacity="0.3" />
           
           {/* Route line */}
           {showRoute && truckPixel && userPixel && (

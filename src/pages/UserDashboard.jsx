@@ -35,7 +35,7 @@ const UserDashboard = () => {
         <meta name="description" content="Manage your vehicle services, track requests, and stay updated with your AutoCare Pro dashboard." />
       </Helmet>
 
-      <UserHeader unreadCount={unreadNotifications.length} onNotificationClick={() => setActiveTab('notifications')} />
+      <UserHeader />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}

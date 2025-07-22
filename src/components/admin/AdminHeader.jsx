@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import NotificationBell from '@/components/common/NotificationBell';
+import LiveStatusIndicator from '@/components/common/LiveStatusIndicator';
 
 const AdminHeader = () => {
   const { user, logout } = useAuth();
@@ -33,9 +35,12 @@ const AdminHeader = () => {
           Admin Dashboard
         </h1>
         <p className="text-gray-300">Welcome back, {user.name} - System Administrator</p>
+        <LiveStatusIndicator className="mt-2" />
       </div>
       
       <div className="flex items-center gap-4 mt-4 md:mt-0">
+        <NotificationBell />
+        
         <div className="flex items-center gap-2 px-3 py-1 bg-red-600 rounded-full">
           <Shield className="w-4 h-4 text-white" />
           <span className="text-white text-sm font-medium">Admin</span>
