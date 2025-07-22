@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
       };
       
       setUser(userData);
-      localStorage.setItem('autocare_user', JSON.stringify(userData));
+      userStorage.saveCurrentUser(userData);
       return userData;
     }
   };
@@ -118,20 +118,20 @@ export const AuthProvider = ({ children }) => {
     };
     
     setUser(newUser);
-    localStorage.setItem('autocare_user', JSON.stringify(newUser));
+    userStorage.saveCurrentUser(newUser);
     return newUser;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('autocare_user');
+    userStorage.clearCurrentUser();
   };
 
   const updateUser = (updatedData) => {
     if (user) {
       const newUserData = { ...user, ...updatedData };
       setUser(newUserData);
-      localStorage.setItem('autocare_user', JSON.stringify(newUserData));
+      userStorage.saveCurrentUser(newUserData);
     }
   };
 
