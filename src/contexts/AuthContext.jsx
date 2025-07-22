@@ -3,6 +3,8 @@ import { userStorage, initializeStorage } from '@/utils/storage';
 import { sendRegistrationNotification, sendWelcomeSMS } from '@/utils/smsService';
 import apiService from '@/utils/api';
 
+
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -52,6 +54,7 @@ export const AuthProvider = ({ children }) => {
   const [backendAvailable, setBackendAvailable] = useState(false);
 
   useEffect(() => {
+
     // Check backend availability and load user
     const loadUser = async () => {
       try {
@@ -90,7 +93,17 @@ export const AuthProvider = ({ children }) => {
       }
     };
 
-    loadUser();
+
+    // Initialize storage system
+    initializeStorage();
+    
+    // Load saved user
+    const savedUser = userStorage.getCurrentUser();
+    if (savedUser) {
+      setUser(savedUser);
+    }
+    setLoading(false);
+
   }, []);
 
   const login = async (email, password) => {
@@ -215,7 +228,7 @@ export const AuthProvider = ({ children }) => {
       };
       
       setUser(userData);
-      localStorage.setItem('autocare_user', JSON.stringify(userData));
+      userStorage.saveCurrentUser(userData);
       return userData;
     } else {
       // Regular user login (any email/password combination)

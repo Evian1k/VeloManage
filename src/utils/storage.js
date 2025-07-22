@@ -220,10 +220,17 @@ export const messageStorage = {
   },
 
   // Save user info for messages
+
   saveMessageUser: (userId, user) => {
     const messageUsers = storage.get(KEYS.MESSAGE_USERS, {});
     messageUsers[userId] = {
       id: userId,
+
+  saveMessageUser: (user) => {
+    const messageUsers = storage.get(KEYS.MESSAGE_USERS, {});
+    messageUsers[user.id] = {
+      id: user.id,
+
       name: user.name,
       email: user.email,
       lastMessage: new Date().toISOString()
@@ -352,6 +359,7 @@ export const notificationStorage = {
     notificationStorage.saveUserNotifications(userId, trimmed);
     
     return newNotification;
+<<<<<<< HEAD
   },
 
   // Add global notification (for all admins)
@@ -373,6 +381,8 @@ export const notificationStorage = {
     });
     
     return newNotification;
+=======
+>>>>>>> 323712cc (Checkpoint before follow-up message)
   }
 };
 
