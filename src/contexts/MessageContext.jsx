@@ -160,6 +160,15 @@ export const MessageProvider = ({ children }) => {
       throw error;
     }
 
+    // Trigger notification for admins
+    window.dispatchEvent(new CustomEvent('newMessage', { 
+      detail: { 
+        senderId: user.id, 
+        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+        type: 'message'
+      } 
+    }));
+
     // Send auto-reply only for the first message or if no admin has replied yet
     const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
     
@@ -205,6 +214,7 @@ export const MessageProvider = ({ children }) => {
         isAutoReply: false
       };
 
+
       const userMessages = conversations[userId] || [];
       const updatedMessages = [...userMessages, newMessage];
       
@@ -224,6 +234,23 @@ export const MessageProvider = ({ children }) => {
       console.error('❌ Failed to send admin message:', error);
       throw error;
     }
+
+    const userMessages = conversations[userId] || [];
+    const updatedMessages = [...userMessages, newMessage];
+    
+    // Update state immediately
+    setConversations(prev => ({ ...prev, [userId]: updatedMessages }));
+    localStorage.setItem(`autocare_messages_${userId}`, JSON.stringify(updatedMessages));
+
+    // Trigger notification for the user
+    window.dispatchEvent(new CustomEvent('newMessage', { 
+      detail: { 
+        senderId: user.id, 
+        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+        type: 'message'
+      } 
+    }));
+
   };
 
   // Function to refresh users list for admin

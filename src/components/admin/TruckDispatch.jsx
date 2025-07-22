@@ -124,7 +124,7 @@ const TruckDispatch = () => {
     
     localStorage.setItem('autocare_trucks', JSON.stringify(updatedTrucks));
     localStorage.setItem('autocare_dispatches', JSON.stringify(updatedDispatches));
- HEAD
+
 
     // Trigger notification for truck dispatch
     window.dispatchEvent(new CustomEvent('serviceUpdate', { 
@@ -136,7 +136,9 @@ const TruckDispatch = () => {
       } 
     }));
 
+
    
+
   };
 
   const completeTruckService = (dispatchId) => {

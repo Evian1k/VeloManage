@@ -8,8 +8,8 @@ const SimpleMap = ({
   showRoute = false 
 }) => {
   // Simple coordinate system - convert lat/lng to pixels
-  const mapWidth = 400;
-  const mapHeight = 300;
+  const mapWidth = 500;
+  const mapHeight = 350;
   
   // NYC area bounds for simulation
   const bounds = {
