@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import storage from '@/lib/storage';
 
 const MessageContext = createContext();
 
@@ -13,13 +14,13 @@ export const useMessages = () => {
 
 const getAllConversations = () => {
   const conversations = {};
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key && key.startsWith('autocare_messages_')) {
+  const storageData = storage.exportData();
+  Object.entries(storageData.data).forEach(([key, value]) => {
+    if (key.startsWith('autocare_messages_') && Array.isArray(value)) {
       const userId = key.replace('autocare_messages_', '');
-      conversations[userId] = JSON.parse(localStorage.getItem(key) || '[]');
+      conversations[userId] = value;
     }
-  }
+  });
   return conversations;
 };
 
@@ -59,8 +60,8 @@ export const MessageProvider = ({ children }) => {
       setUsersWithMessages(mockUsers);
 
     } else if (user) {
-      const savedMessages = localStorage.getItem(`autocare_messages_${user.id}`);
-      setConversations({ [user.id]: savedMessages ? JSON.parse(savedMessages) : [] });
+      const savedMessages = storage.getMessages(user.id);
+      setConversations({ [user.id]: savedMessages });
     } else {
       setConversations({});
     }
@@ -80,7 +81,7 @@ export const MessageProvider = ({ children }) => {
     const updatedMessages = [...userMessages, newMessage];
     const newConversations = { ...conversations, [user.id]: updatedMessages };
     setConversations(newConversations);
-    localStorage.setItem(`autocare_messages_${user.id}`, JSON.stringify(updatedMessages));
+    storage.setMessages(user.id, updatedMessages);
 
     setTimeout(() => {
       const reply = {
@@ -92,7 +93,7 @@ export const MessageProvider = ({ children }) => {
       const messagesWithReply = [...updatedMessages, reply];
       const finalConversations = { ...conversations, [user.id]: messagesWithReply };
       setConversations(finalConversations);
-      localStorage.setItem(`autocare_messages_${user.id}`, JSON.stringify(messagesWithReply));
+      storage.setMessages(user.id, messagesWithReply);
     }, 1500);
   };
 
@@ -110,7 +111,7 @@ export const MessageProvider = ({ children }) => {
     const updatedMessages = [...userMessages, newMessage];
     const newConversations = { ...conversations, [userId]: updatedMessages };
     setConversations(newConversations);
-    localStorage.setItem(`autocare_messages_${userId}`, JSON.stringify(updatedMessages));
+    storage.setMessages(userId, updatedMessages);
   };
 
   const value = {

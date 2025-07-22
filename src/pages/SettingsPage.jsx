@@ -7,8 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import DataBackupManager from '@/components/DataBackupManager';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
@@ -83,60 +85,77 @@ const SettingsPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
         >
-          <form onSubmit={handleSubmit}>
-            <Card className="glass-effect border-red-900/30">
-              <CardHeader>
-                <CardTitle className="text-white">Profile Information</CardTitle>
-                <CardDescription className="text-gray-300">Update your personal details here.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-white">Full Name</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input id="name" name="name" value={formData.name} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-white">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-black/50 border border-red-900/30">
+              <TabsTrigger value="profile" className="text-white data-[state=active]:bg-red-600">
+                Profile Settings
+              </TabsTrigger>
+              <TabsTrigger value="data" className="text-white data-[state=active]:bg-red-600">
+                Data & Backup
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="profile" className="mt-6">
+              <form onSubmit={handleSubmit}>
+                <Card className="glass-effect border-red-900/30">
+                  <CardHeader>
+                    <CardTitle className="text-white">Profile Information</CardTitle>
+                    <CardDescription className="text-gray-300">Update your personal details here.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="name" className="text-white">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input id="name" name="name" value={formData.name} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-white">Email Address</Label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <Card className="glass-effect border-red-900/30 mt-6">
-              <CardHeader>
-                <CardTitle className="text-white">Change Password</CardTitle>
-                <CardDescription className="text-gray-300">Leave blank to keep your current password.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="password"  className="text-white">New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword"  className="text-white">Confirm New Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                <Card className="glass-effect border-red-900/30 mt-6">
+                  <CardHeader>
+                    <CardTitle className="text-white">Change Password</CardTitle>
+                    <CardDescription className="text-gray-300">Leave blank to keep your current password.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="password"  className="text-white">New Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword"  className="text-white">Confirm New Password</Label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} className="pl-10 bg-black/50 border-red-900/50 text-white" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            <div className="mt-8 flex justify-end">
-              <Button type="submit" disabled={loading} className="bg-gradient-to-r from-red-600 to-red-700 text-white">
-                <Save className="w-4 h-4 mr-2" />
-                {loading ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </form>
+                <div className="mt-8 flex justify-end">
+                  <Button type="submit" disabled={loading} className="bg-gradient-to-r from-red-600 to-red-700 text-white">
+                    <Save className="w-4 h-4 mr-2" />
+                    {loading ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
+              </form>
+            </TabsContent>
+            
+            <TabsContent value="data" className="mt-6">
+              <DataBackupManager />
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </div>
     </div>

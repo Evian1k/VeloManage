@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import storage from '@/lib/storage';
 
 const ServiceContext = createContext();
 
@@ -43,16 +44,16 @@ export const ServiceProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [vehicles, setVehicles] = useState([]);
 
-  useEffect(() => {
+    useEffect(() => {
     if (user) {
-      const savedRequests = localStorage.getItem(`autocare_requests_${user.id}`);
-      setRequests(savedRequests ? JSON.parse(savedRequests) : []);
+      const savedRequests = storage.getRequests(user.id);
+      setRequests(savedRequests);
       
-      const savedNotifications = localStorage.getItem(`autocare_notifications_${user.id}`);
-      setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
-
-      const savedVehicles = localStorage.getItem(`autocare_vehicles`);
-      setVehicles(savedVehicles ? JSON.parse(savedVehicles) : initialVehicles);
+      const savedNotifications = storage.getNotifications(user.id);
+      setNotifications(savedNotifications);
+      
+      const savedVehicles = storage.getVehicles();
+      setVehicles(savedVehicles.length > 0 ? savedVehicles : initialVehicles);
       
       generateServiceReminders();
     }
@@ -78,7 +79,7 @@ export const ServiceProvider = ({ children }) => {
         const exists = prev.some(n => n.type === 'service_reminder');
         if (!exists) {
           const updated = [reminder, ...prev];
-          localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updated));
+          storage.setNotifications(user.id, updated);
           return updated;
         }
         return prev;
@@ -100,7 +101,7 @@ export const ServiceProvider = ({ children }) => {
     
     const updatedRequests = [newRequest, ...requests];
     setRequests(updatedRequests);
-    localStorage.setItem(`autocare_requests_${user.id}`, JSON.stringify(updatedRequests));
+    storage.setRequests(user.id, updatedRequests);
     
     if (user.isAdmin) {
       const notification = {
@@ -115,7 +116,7 @@ export const ServiceProvider = ({ children }) => {
       
       const updatedNotifications = [notification, ...notifications];
       setNotifications(updatedNotifications);
-      localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updatedNotifications));
+      storage.setNotifications(user.id, updatedNotifications);
     }
     
     return newRequest;
@@ -142,14 +143,14 @@ export const ServiceProvider = ({ children }) => {
     // A real backend would handle this better.
     const userRequests = updatedRequests.filter(r => r.userId === user.id);
     setRequests(userRequests);
-    localStorage.setItem(`autocare_requests_${user.id}`, JSON.stringify(userRequests));
+    storage.setRequests(user.id, userRequests);
 
     // A bit of a hack to update other users' data in localStorage
     const otherUsersRequests = updatedRequests.filter(r => r.userId !== user.id);
     const userIds = [...new Set(otherUsersRequests.map(r => r.userId))];
     userIds.forEach(uid => {
         const specificUserRequests = otherUsersRequests.filter(r => r.userId === uid);
-        localStorage.setItem(`autocare_requests_${uid}`, JSON.stringify(specificUserRequests));
+        storage.setRequests(uid, specificUserRequests);
     });
     
     const request = updatedRequests.find(req => req.id === requestId);
@@ -166,7 +167,7 @@ export const ServiceProvider = ({ children }) => {
       
       const updatedNotifications = [notification, ...notifications];
       setNotifications(updatedNotifications);
-      localStorage.setItem(`autocare_notifications_${request.userId}`, JSON.stringify(updatedNotifications));
+      storage.setNotifications(request.userId, updatedNotifications);
     }
   };
 
@@ -175,18 +176,18 @@ export const ServiceProvider = ({ children }) => {
       notif.id === notificationId ? { ...notif, read: true } : notif
     );
     setNotifications(updatedNotifications);
-    localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updatedNotifications));
+    storage.setNotifications(user.id, updatedNotifications);
   };
 
   const getAllRequests = () => {
     const allRequests = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('autocare_requests_')) {
-        const userRequests = JSON.parse(localStorage.getItem(key) || '[]');
-        allRequests.push(...userRequests);
+    // Get all request data from enhanced storage
+    const storageData = storage.exportData();
+    Object.entries(storageData.data).forEach(([key, value]) => {
+      if (key.startsWith('autocare_requests_') && Array.isArray(value)) {
+        allRequests.push(...value);
       }
-    }
+    });
     return allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   };
 
@@ -198,19 +199,19 @@ export const ServiceProvider = ({ children }) => {
     };
     const updatedVehicles = [...vehicles, newVehicle];
     setVehicles(updatedVehicles);
-    localStorage.setItem('autocare_vehicles', JSON.stringify(updatedVehicles));
+    storage.setVehicles(updatedVehicles);
   };
 
   const updateVehicle = (vehicleData) => {
     const updatedVehicles = vehicles.map(v => v.id === vehicleData.id ? vehicleData : v);
     setVehicles(updatedVehicles);
-    localStorage.setItem('autocare_vehicles', JSON.stringify(updatedVehicles));
+    storage.setVehicles(updatedVehicles);
   };
 
   const deleteVehicle = (vehicleId) => {
     const updatedVehicles = vehicles.filter(v => v.id !== vehicleId);
     setVehicles(updatedVehicles);
-    localStorage.setItem('autocare_vehicles', JSON.stringify(updatedVehicles));
+    storage.setVehicles(updatedVehicles);
   };
 
   const value = {

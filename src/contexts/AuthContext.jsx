@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import storage from '@/lib/storage';
 
 const AuthContext = createContext();
 
@@ -22,9 +23,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('autocare_user');
+    const savedUser = storage.getUserData();
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      setUser(savedUser);
     }
     setLoading(false);
   }, []);
@@ -44,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     };
     
     setUser(userData);
-    localStorage.setItem('autocare_user', JSON.stringify(userData));
+    storage.setUserData(userData);
     return userData;
   };
 
@@ -62,20 +63,20 @@ export const AuthProvider = ({ children }) => {
     };
     
     setUser(newUser);
-    localStorage.setItem('autocare_user', JSON.stringify(newUser));
+    storage.setUserData(newUser);
     return newUser;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('autocare_user');
+    storage.set('autocare_user', null);
   };
 
   const updateUser = (updatedData) => {
     if (user) {
       const newUserData = { ...user, ...updatedData };
       setUser(newUserData);
-      localStorage.setItem('autocare_user', JSON.stringify(newUserData));
+      storage.setUserData(newUserData);
     }
   };
 
