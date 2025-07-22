@@ -11,31 +11,41 @@ export const useMessages = () => {
   return context;
 };
 
+// Get all conversations from localStorage
 const getAllConversations = () => {
   const conversations = {};
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key && key.startsWith('autocare_messages_')) {
       const userId = key.replace('autocare_messages_', '');
-      conversations[userId] = JSON.parse(localStorage.getItem(key) || '[]');
+      const messages = JSON.parse(localStorage.getItem(key) || '[]');
+      if (messages.length > 0) {
+        conversations[userId] = messages;
+      }
     }
   }
   return conversations;
 };
 
-const getAllUsers = () => {
-  const users = [];
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if (key.startsWith('autocare_user_')) { // Assuming we store users like this, but we store one user
-        // This part is tricky with the current auth setup. We'll mock it.
-    }
+// Get users who have sent messages
+const getUsersWithMessages = () => {
+  const users = {};
+  const savedUsers = localStorage.getItem('autocare_message_users');
+  if (savedUsers) {
+    return JSON.parse(savedUsers);
   }
-  // Mocking users who have sent messages
-  return [
-      { id: 1, name: 'John Doe', email: 'john.doe@example.com' },
-      { id: 2, name: 'Jane Smith', email: 'jane.smith@example.com' }
-  ];
+  return {};
+};
+
+// Save user info when they send their first message
+const saveUserInfo = (user) => {
+  const existingUsers = getUsersWithMessages();
+  existingUsers[user.id] = {
+    id: user.id,
+    name: user.name,
+    email: user.email
+  };
+  localStorage.setItem('autocare_message_users', JSON.stringify(existingUsers));
 };
 
 
@@ -46,28 +56,28 @@ export const MessageProvider = ({ children }) => {
 
   useEffect(() => {
     if (user?.isAdmin) {
+      // Load all conversations for admin
       const allConvos = getAllConversations();
       setConversations(allConvos);
       
-      // This is a simplified way to get users. A real app would have a user list.
-      const userIds = Object.keys(allConvos);
-      const mockUsers = userIds.map(id => ({
-          id: id,
-          name: `User ${id}`,
-          email: `user${id}@example.com`
-      }));
-      setUsersWithMessages(mockUsers);
-
+      // Load users who have sent messages
+      const messageUsers = getUsersWithMessages();
+      setUsersWithMessages(Object.values(messageUsers));
     } else if (user) {
+      // Load user's own messages
       const savedMessages = localStorage.getItem(`autocare_messages_${user.id}`);
       setConversations({ [user.id]: savedMessages ? JSON.parse(savedMessages) : [] });
     } else {
       setConversations({});
+      setUsersWithMessages([]);
     }
   }, [user]);
 
   const sendMessage = (text) => {
     if (!user || user.isAdmin) return;
+    
+    // Save user info for admin to see
+    saveUserInfo(user);
     
     const newMessage = {
       id: Date.now(),
@@ -78,22 +88,35 @@ export const MessageProvider = ({ children }) => {
     
     const userMessages = conversations[user.id] || [];
     const updatedMessages = [...userMessages, newMessage];
-    const newConversations = { ...conversations, [user.id]: updatedMessages };
-    setConversations(newConversations);
+    
+    // Update state immediately
+    setConversations(prev => ({ ...prev, [user.id]: updatedMessages }));
     localStorage.setItem(`autocare_messages_${user.id}`, JSON.stringify(updatedMessages));
 
-    setTimeout(() => {
-      const reply = {
-        id: Date.now() + 1,
-        sender: 'admin',
-        text: "Thanks for your message! An admin will review it shortly and get back to you.",
-        timestamp: new Date().toISOString()
-      };
-      const messagesWithReply = [...updatedMessages, reply];
-      const finalConversations = { ...conversations, [user.id]: messagesWithReply };
-      setConversations(finalConversations);
-      localStorage.setItem(`autocare_messages_${user.id}`, JSON.stringify(messagesWithReply));
-    }, 1500);
+    // Force refresh of admin's user list if this is a new user
+    if (userMessages.length === 0) {
+      // Trigger a custom event for real-time updates
+      window.dispatchEvent(new CustomEvent('newUserMessage', { detail: { userId: user.id } }));
+    }
+
+    // Send auto-reply only for the first message or if no admin has replied yet
+    const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
+    
+    if (!hasAdminReplied) {
+      setTimeout(() => {
+        const reply = {
+          id: Date.now() + 1,
+          sender: 'admin',
+          text: "Thanks for your message! An admin will review it shortly and get back to you.",
+          timestamp: new Date().toISOString(),
+          isAutoReply: true
+        };
+        
+        const messagesWithReply = [...updatedMessages, reply];
+        setConversations(prev => ({ ...prev, [user.id]: messagesWithReply }));
+        localStorage.setItem(`autocare_messages_${user.id}`, JSON.stringify(messagesWithReply));
+      }, 1000);
+    }
   };
 
   const sendMessageToUser = (userId, text) => {
@@ -103,14 +126,24 @@ export const MessageProvider = ({ children }) => {
       id: Date.now(),
       sender: 'admin',
       text,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      isAutoReply: false
     };
 
     const userMessages = conversations[userId] || [];
     const updatedMessages = [...userMessages, newMessage];
-    const newConversations = { ...conversations, [userId]: updatedMessages };
-    setConversations(newConversations);
+    
+    // Update state immediately
+    setConversations(prev => ({ ...prev, [userId]: updatedMessages }));
     localStorage.setItem(`autocare_messages_${userId}`, JSON.stringify(updatedMessages));
+  };
+
+  // Function to refresh users list for admin
+  const refreshUsersWithMessages = () => {
+    if (user?.isAdmin) {
+      const messageUsers = getUsersWithMessages();
+      setUsersWithMessages(Object.values(messageUsers));
+    }
   };
 
   const value = {
@@ -119,6 +152,7 @@ export const MessageProvider = ({ children }) => {
     usersWithMessages,
     sendMessage,
     sendMessageToUser,
+    refreshUsersWithMessages,
   };
 
   return (
