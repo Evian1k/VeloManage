@@ -59,9 +59,10 @@ const RegisterPage = () => {
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration failed",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {

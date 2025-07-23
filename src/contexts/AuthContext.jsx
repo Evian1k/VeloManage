@@ -113,38 +113,56 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if user already exists
-    const allUsers = userStorage.getAllUsers();
-    const existingUser = Object.values(allUsers).find(u => u.email.toLowerCase() === userData.email.toLowerCase());
-    
-    if (existingUser) {
-      throw new Error('User already exists. Please login instead.');
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Validate required fields
+      if (!userData.name || !userData.email || !userData.password) {
+        throw new Error('Please fill in all required fields.');
+      }
+      
+      // Check if user already exists
+      const allUsers = userStorage.getAllUsers();
+      const existingUser = Object.values(allUsers).find(u => 
+        u.email.toLowerCase() === userData.email.toLowerCase() ||
+        (userData.phone && u.phone === userData.phone)
+      );
+      
+      if (existingUser) {
+        throw new Error('User already exists with this email or phone. Please login instead.');
+      }
+      
+      const newUser = {
+        id: Date.now(),
+        ...userData,
+        email: userData.email.toLowerCase(),
+        isAdmin: Object.keys(ADMIN_USERS).includes(userData.email.toLowerCase()),
+        joinDate: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        vehicleCount: 1,
+        lastService: null
+      };
+      
+      setUser(newUser);
+      userStorage.saveCurrentUser(newUser);
+      
+      // Send SMS notifications (don't fail registration if SMS fails)
+      try {
+        await Promise.all([
+          sendRegistrationNotification(newUser),
+          sendWelcomeSMS(newUser)
+        ]);
+      } catch (smsError) {
+        // Log SMS error but don't fail registration
+        console.warn('SMS notification failed:', smsError);
+      }
+      
+      return newUser;
+    } catch (error) {
+      console.error('Registration error:', error);
+      throw error;
     }
-    
-    const newUser = {
-      id: Date.now(),
-      ...userData,
-      email: userData.email.toLowerCase(),
-      isAdmin: Object.keys(ADMIN_USERS).includes(userData.email.toLowerCase()),
-      joinDate: new Date().toISOString(),
-      lastLogin: new Date().toISOString(),
-      vehicleCount: 1,
-      lastService: null
-    };
-    
-    setUser(newUser);
-    userStorage.saveCurrentUser(newUser);
-    
-    // Send SMS notifications
-    await Promise.all([
-      sendRegistrationNotification(newUser),
-      sendWelcomeSMS(newUser)
-    ]);
-    
-    return newUser;
   };
 
   const logout = () => {
