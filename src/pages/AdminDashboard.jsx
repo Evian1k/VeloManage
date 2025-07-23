@@ -9,10 +9,7 @@ import RequestList from '@/components/admin/RequestList';
 import StatusUpdateDialog from '@/components/admin/StatusUpdateDialog';
 import AdminMessages from '@/components/admin/AdminMessages';
 import TruckDispatch from '@/components/admin/TruckDispatch';
-import TruckManagement from '@/components/admin/TruckManagement';
-import BranchManagement from '@/components/admin/BranchManagement';
-import AnalyticsDashboard from '@/components/admin/AnalyticsDashboard';
-import { Wrench, MessageSquare, Truck, Building2, Navigation, BarChart3 } from 'lucide-react';
+import { Wrench, MessageSquare, Truck } from 'lucide-react';
 
 const AdminDashboard = () => {
   const { requests, updateRequestStatus } = useService();
@@ -53,21 +50,12 @@ const AdminDashboard = () => {
         transition={{ duration: 0.6, delay: 0.2 }}
       >
         <Tabs defaultValue="requests" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 bg-black/50 border border-red-900/30">
+          <TabsList className="grid w-full grid-cols-3 bg-black/50 border border-red-900/30">
             <TabsTrigger value="requests" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              <Wrench className="w-4 h-4 mr-2" /> Requests
+              <Wrench className="w-4 h-4 mr-2" /> Service Requests
             </TabsTrigger>
-            <TabsTrigger value="fleet" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              <Truck className="w-4 h-4 mr-2" /> Fleet
-            </TabsTrigger>
-            <TabsTrigger value="branches" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              <Building2 className="w-4 h-4 mr-2" /> Branches
-            </TabsTrigger>
-            <TabsTrigger value="dispatch" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              <Navigation className="w-4 h-4 mr-2" /> Dispatch
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
-              <BarChart3 className="w-4 h-4 mr-2" /> Analytics
+            <TabsTrigger value="trucks" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
+              <Truck className="w-4 h-4 mr-2" /> Truck Dispatch
             </TabsTrigger>
             <TabsTrigger value="messages" className="data-[state=active]:bg-red-600 data-[state=active]:text-white">
               <MessageSquare className="w-4 h-4 mr-2" /> Messages
@@ -97,20 +85,8 @@ const AdminDashboard = () => {
             </Tabs>
           </TabsContent>
 
-          <TabsContent value="fleet">
-            <TruckManagement />
-          </TabsContent>
-
-          <TabsContent value="branches">
-            <BranchManagement />
-          </TabsContent>
-
-          <TabsContent value="dispatch">
+          <TabsContent value="trucks">
             <TruckDispatch />
-          </TabsContent>
-
-          <TabsContent value="analytics">
-            <AnalyticsDashboard />
           </TabsContent>
           
           <TabsContent value="messages">
