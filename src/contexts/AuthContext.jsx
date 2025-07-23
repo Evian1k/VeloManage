@@ -114,16 +114,22 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (userData) => {
     try {
+      console.log('Starting registration for:', userData.email);
+      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Validate required fields
+      console.log('Validating required fields...');
       if (!userData.name || !userData.email || !userData.password) {
         throw new Error('Please fill in all required fields.');
       }
       
       // Check if user already exists
+      console.log('Checking for existing users...');
       const allUsers = userStorage.getAllUsers();
+      console.log('All users:', Object.keys(allUsers));
+      
       const existingUser = Object.values(allUsers).find(u => 
         u.email.toLowerCase() === userData.email.toLowerCase() ||
         (userData.phone && u.phone === userData.phone)
@@ -133,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         throw new Error('User already exists with this email or phone. Please login instead.');
       }
       
+      console.log('Creating new user...');
       const newUser = {
         id: Date.now(),
         ...userData,
@@ -144,20 +151,29 @@ export const AuthProvider = ({ children }) => {
         lastService: null
       };
       
+      console.log('New user created:', newUser);
+      
+      console.log('Setting user state...');
       setUser(newUser);
-      userStorage.saveCurrentUser(newUser);
+      
+      console.log('Saving user to storage...');
+      const saveResult = userStorage.saveCurrentUser(newUser);
+      console.log('Save result:', saveResult);
       
       // Send SMS notifications (don't fail registration if SMS fails)
       try {
+        console.log('Sending SMS notifications...');
         await Promise.all([
           sendRegistrationNotification(newUser),
           sendWelcomeSMS(newUser)
         ]);
+        console.log('SMS notifications sent successfully');
       } catch (smsError) {
         // Log SMS error but don't fail registration
         console.warn('SMS notification failed:', smsError);
       }
       
+      console.log('Registration completed successfully');
       return newUser;
     } catch (error) {
       console.error('Registration error:', error);

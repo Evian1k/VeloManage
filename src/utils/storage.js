@@ -220,10 +220,10 @@ export const messageStorage = {
   },
 
   // Save user info for messages
-  saveMessageUser: (user) => {
+  saveMessageUser: (userId, user) => {
     const messageUsers = storage.get(KEYS.MESSAGE_USERS, {});
-    messageUsers[user.id] = {
-      id: user.id,
+    messageUsers[userId] = {
+      id: userId,
       name: user.name,
       email: user.email,
       lastMessage: new Date().toISOString()

@@ -25,7 +25,6 @@ const getUsersWithMessages = () => {
 // Save user info when they send their first message
 const saveUserInfo = (user) => {
   messageStorage.saveMessageUser(user.id, {
-    id: user.id,
     name: user.name,
     email: user.email
   });
@@ -38,21 +37,30 @@ export const MessageProvider = ({ children }) => {
   const [usersWithMessages, setUsersWithMessages] = useState([]);
 
   useEffect(() => {
-    if (user?.isAdmin) {
-      // Load all conversations for admin
-      const allConvos = getAllConversations();
-      setConversations(allConvos);
-      
-      // Load users who have sent messages
-      const messageUsers = getUsersWithMessages();
-      setUsersWithMessages(Object.values(messageUsers));
-    } else if (user) {
-      // Load user's own messages
-      const savedMessages = messageStorage.getUserMessages(user.id);
-      setConversations({ [user.id]: savedMessages });
-    } else {
-      setConversations({});
-      setUsersWithMessages([]);
+    try {
+      if (user?.isAdmin) {
+        console.log('Loading admin conversations...');
+        // Load all conversations for admin
+        const allConvos = getAllConversations();
+        console.log('All conversations:', allConvos);
+        setConversations(allConvos);
+        
+        // Load users who have sent messages
+        const messageUsers = getUsersWithMessages();
+        console.log('Message users:', messageUsers);
+        setUsersWithMessages(Object.values(messageUsers));
+      } else if (user) {
+        console.log('Loading user messages for:', user.id);
+        // Load user's own messages
+        const savedMessages = messageStorage.getUserMessages(user.id);
+        console.log('Saved messages:', savedMessages);
+        setConversations({ [user.id]: savedMessages });
+      } else {
+        setConversations({});
+        setUsersWithMessages([]);
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error);
     }
   }, [user]);
 
