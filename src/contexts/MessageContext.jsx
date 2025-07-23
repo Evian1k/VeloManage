@@ -47,8 +47,27 @@ export const MessageProvider = ({ children }) => {
 
     setLoading(true);
     try {
-      // Always use localStorage for consistent messaging
-      console.log('📱 Loading messages from localStorage (reliable mode)...');
+      if (backendAvailable) {
+        if (user.isAdmin || user.is_admin) {
+          const response = await apiService.getConversations();
+          if (response.success) {
+            setUsersWithMessages(response.data);
+            if (response.data.length > 0) {
+              const firstConv = response.data[0];
+              const messagesResponse = await apiService.getMessages(firstConv.conversation_id);
+              if (messagesResponse.success) {
+                setConversations({ [firstConv.conversation_id]: messagesResponse.data });
+              }
+            }
+          }
+        } else {
+          const userConversationId = `user_${user.id}_admin`;
+          const response = await apiService.getMessages(userConversationId);
+          if (response.success) {
+            setConversations({ [user.id]: response.data });
+          }
+        }
+      } else {
         // Fallback to localStorage
         if (user.isAdmin || user.is_admin) {
           const allConvos = getAllConversations();
@@ -60,6 +79,7 @@ export const MessageProvider = ({ children }) => {
           const savedMessages = messageStorage.getUserMessages(user.id);
           setConversations({ [user.id]: savedMessages });
         }
+      }
       }
     } catch (error) {
       console.error('❌ Error loading messages:', error);
@@ -86,19 +106,22 @@ export const MessageProvider = ({ children }) => {
     loadMessages();
   }, [user, backendAvailable]);
 
-  const sendMessage = async (text) => {
-    if (!user || !text?.trim()) {
-      console.log('❌ SendMessage failed - user or text missing:', { user: !!user, text: !!text?.trim() });
-      return;
-    }
+    const sendMessage = async (text) => {
+    if (!user || !text?.trim()) return;
     
-          console.log('📤 Sending message:', { text, user: user.name, isAdmin: user?.isAdmin || user?.is_admin });
-    
-          try {
-                // Always use localStorage for reliability
-        console.log('📱 Sending message via localStorage (reliable mode)...');
+    try {
+      if (backendAvailable) {
+        console.log('🌐 Sending message via backend...');
+        const response = await apiService.sendMessage(text);
+        if (response.success) {
+          console.log('✅ Message sent via backend');
+          await loadMessages();
+          return;
+        }
+      }
       
-      // Save user info when they send their first message
+      console.log('📱 Sending message via localStorage...');
+      // Fallback to localStorage
       saveUserInfo(user);
       
       const newMessage = {
@@ -108,23 +131,11 @@ export const MessageProvider = ({ children }) => {
         timestamp: new Date().toISOString()
       };
       
-      console.log('📝 Creating new message:', newMessage);
-      
       const userMessages = conversations[user.id] || [];
       const updatedMessages = [...userMessages, newMessage];
       
-      console.log('💾 Updating messages:', { 
-        userId: user.id, 
-        previousCount: userMessages.length, 
-        newCount: updatedMessages.length 
-      });
-      
       // Update state immediately
-      setConversations(prev => {
-        const updated = { ...prev, [user.id]: updatedMessages };
-        console.log('🔄 State updated:', updated);
-        return updated;
-      });
+      setConversations(prev => ({ ...prev, [user.id]: updatedMessages }));
       messageStorage.saveUserMessages(user.id, updatedMessages);
 
       // Force refresh of admin's user list if this is a new user
@@ -219,10 +230,8 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
-  const isAdmin = user?.isAdmin || user?.is_admin || user?.role?.includes('Admin');
-  
   const value = {
-    messages: user && !isAdmin ? conversations[user.id] || [] : [],
+    messages: user && !user.isAdmin && !user.is_admin ? conversations[user.id] || [] : [],
     conversations,
     usersWithMessages,
     sendMessage,

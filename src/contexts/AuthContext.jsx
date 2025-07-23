@@ -147,8 +147,6 @@ export const AuthProvider = ({ children }) => {
         
         setUser(userData);
         userStorage.saveCurrentUser(userData);
-        // Set a temporary token for localStorage mode
-        apiService.setToken('localStorage-admin-token');
         console.log('✅ Admin login successful');
         return userData;
       } else {
@@ -182,8 +180,6 @@ export const AuthProvider = ({ children }) => {
           
           setUser(userData);
           userStorage.saveCurrentUser(userData);
-          // Set a temporary token for localStorage mode
-          apiService.setToken(`localStorage-user-${userData.id}`);
           console.log('✅ User login successful');
           return userData;
         } else {
@@ -293,8 +289,6 @@ export const AuthProvider = ({ children }) => {
       
       // Set user in state first
       setUser(newUser);
-      // Set a temporary token for localStorage mode
-      apiService.setToken(`localStorage-user-${newUser.id}`);
       console.log('✅ User state updated');
       
       // Save to storage

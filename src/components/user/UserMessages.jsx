@@ -15,16 +15,7 @@ const UserMessages = () => {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('👤 UserMessages - Current state:', {
-      user: user?.name,
-      messagesCount: messages?.length || 0,
-      messages: messages,
-      backendAvailable,
-      loading
-    });
-  }, [user, messages, backendAvailable, loading]);
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
