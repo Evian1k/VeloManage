@@ -3,11 +3,11 @@
 
 // Admin phone numbers for notifications
 export const ADMIN_PHONES = {
-  'emmanuel.evian@autocare.com': '+254700000001',
-  'ibrahim.mohamud@autocare.com': '+254700000002', 
-  'joel.nganga@autocare.com': '+254700000003',
-  'patience.karanja@autocare.com': '+254700000004',
-  'joyrose.kinuthia@autocare.com': '+254700000005'
+  'emmanuel.evian@autocare.com': '+254746720669',
+  'ibrahim.mohamud@autocare.com': '+254729549671', 
+  'joel.nganga@autocare.com': '+254757735896',
+  'patience.karanja@autocare.com': '+254718168860',
+  'joyrose.kinuthia@autocare.com': '+254718528547'
 };
 
 // Company details
