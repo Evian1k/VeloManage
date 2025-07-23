@@ -130,20 +130,42 @@ export const initializeDatabase = async () => {
       )
     `);
 
+    // Branches table
+    await dbAsync.run(`
+      CREATE TABLE IF NOT EXISTS branches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        location TEXT NOT NULL,
+        address TEXT,
+        contact_info TEXT, -- JSON string
+        working_hours TEXT, -- JSON string
+        staff_members TEXT, -- JSON array
+        manager_name TEXT,
+        capacity INTEGER,
+        services_offered TEXT, -- JSON array
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Trucks table
     await dbAsync.run(`
       CREATE TABLE IF NOT EXISTS trucks (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         license_plate TEXT UNIQUE NOT NULL,
+        model TEXT,
+        capacity TEXT,
         driver_name TEXT,
         driver_phone TEXT,
+        branch_id INTEGER,
         current_lat REAL,
         current_lng REAL,
         status TEXT DEFAULT 'available' CHECK(status IN ('available', 'dispatched', 'maintenance', 'offline')),
         assigned_request_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (branch_id) REFERENCES branches (id) ON DELETE SET NULL,
         FOREIGN KEY (assigned_request_id) REFERENCES service_requests (id) ON DELETE SET NULL
       )
     `);
@@ -173,6 +195,21 @@ export const initializeDatabase = async () => {
         provider TEXT DEFAULT 'africastalking',
         response_data TEXT, -- JSON string
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Audit logs table
+    await dbAsync.run(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        action TEXT NOT NULL,
+        resource_type TEXT,
+        resource_id TEXT,
+        details TEXT, -- JSON string
+        ip_address TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL
       )
     `);
 
