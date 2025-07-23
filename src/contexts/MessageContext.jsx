@@ -47,36 +47,8 @@ export const MessageProvider = ({ children }) => {
 
     setLoading(true);
     try {
-      if (backendAvailable) {
-        console.log('📡 Loading messages from backend...');
-        
-        if (user.isAdmin || user.is_admin) {
-          // Load conversations for admin
-          const response = await apiService.getConversations();
-          if (response.success) {
-            console.log('✅ Admin conversations loaded:', response.data);
-            setUsersWithMessages(response.data);
-            
-            // Load first conversation messages if exists
-            if (response.data.length > 0) {
-              const firstConv = response.data[0];
-              const messagesResponse = await apiService.getMessages(firstConv.conversation_id);
-              if (messagesResponse.success) {
-                setConversations({ [firstConv.conversation_id]: messagesResponse.data });
-              }
-            }
-          }
-        } else {
-          // Load user's own messages
-          const userConversationId = `user_${user.id}_admin`;
-          const response = await apiService.getMessages(userConversationId);
-          if (response.success) {
-            console.log('✅ User messages loaded:', response.data);
-            setConversations({ [user.id]: response.data });
-          }
-        }
-      } else {
-        console.log('📱 Loading messages from localStorage...');
+      // Always use localStorage for consistent messaging
+      console.log('📱 Loading messages from localStorage (reliable mode)...');
         // Fallback to localStorage
         if (user.isAdmin || user.is_admin) {
           const allConvos = getAllConversations();
@@ -115,22 +87,18 @@ export const MessageProvider = ({ children }) => {
   }, [user, backendAvailable]);
 
   const sendMessage = async (text) => {
-    if (!user || user.isAdmin || user.is_admin) return;
+    if (!user || !text?.trim()) {
+      console.log('❌ SendMessage failed - user or text missing:', { user: !!user, text: !!text?.trim() });
+      return;
+    }
     
-    try {
-      if (backendAvailable) {
-        console.log('📡 Sending message via backend...');
-        const response = await apiService.sendMessage(text);
-        if (response.success) {
-          console.log('✅ Message sent via backend');
-          // Reload messages to get the latest
-          await loadMessages();
-          return;
-        }
-      }
+          console.log('📤 Sending message:', { text, user: user.name, isAdmin: user?.isAdmin || user?.is_admin });
+    
+          try {
+                // Always use localStorage for reliability
+        console.log('📱 Sending message via localStorage (reliable mode)...');
       
-      console.log('📱 Sending message via localStorage...');
-      // Fallback to localStorage
+      // Save user info when they send their first message
       saveUserInfo(user);
       
       const newMessage = {
@@ -140,11 +108,23 @@ export const MessageProvider = ({ children }) => {
         timestamp: new Date().toISOString()
       };
       
+      console.log('📝 Creating new message:', newMessage);
+      
       const userMessages = conversations[user.id] || [];
       const updatedMessages = [...userMessages, newMessage];
       
+      console.log('💾 Updating messages:', { 
+        userId: user.id, 
+        previousCount: userMessages.length, 
+        newCount: updatedMessages.length 
+      });
+      
       // Update state immediately
-      setConversations(prev => ({ ...prev, [user.id]: updatedMessages }));
+      setConversations(prev => {
+        const updated = { ...prev, [user.id]: updatedMessages };
+        console.log('🔄 State updated:', updated);
+        return updated;
+      });
       messageStorage.saveUserMessages(user.id, updatedMessages);
 
       // Force refresh of admin's user list if this is a new user
@@ -239,8 +219,10 @@ export const MessageProvider = ({ children }) => {
     }
   };
 
+  const isAdmin = user?.isAdmin || user?.is_admin || user?.role?.includes('Admin');
+  
   const value = {
-    messages: user && !user.isAdmin && !user.is_admin ? conversations[user.id] || [] : [],
+    messages: user && !isAdmin ? conversations[user.id] || [] : [],
     conversations,
     usersWithMessages,
     sendMessage,

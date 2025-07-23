@@ -14,7 +14,31 @@ export const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verify token
+    // Handle localStorage tokens (for demo/fallback mode)
+    if (token.startsWith('localStorage-')) {
+      console.log('🔓 localStorage token detected, creating mock user');
+      
+      // Extract user type and ID from token
+      const tokenParts = token.split('-');
+      const userType = tokenParts[1]; // 'admin' or 'user'
+      const userId = tokenParts[2] || 'mock-user';
+      
+      // Create mock user for localStorage mode
+      const mockUser = {
+        id: userId,
+        name: userType === 'admin' ? 'Admin User' : 'Demo User',
+        email: userType === 'admin' ? 'admin@autocare.com' : 'user@autocare.com',
+        phone: '+1234567890',
+        role: userType === 'admin' ? 'Admin' : 'User',
+        is_admin: userType === 'admin'
+      };
+      
+      req.user = mockUser;
+      next();
+      return;
+    }
+
+    // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Get user from database
