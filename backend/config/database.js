@@ -144,7 +144,7 @@ export const initializeDatabase = async () => {
         capacity INTEGER,
         services_offered TEXT, -- JSON array
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        updated_at DATETIME DEFAULTвремени CURRENT_TIMESTAMP
       )
     `);
 
@@ -222,7 +222,7 @@ export const initializeDatabase = async () => {
 
     console.log('✅ Database tables initialized successfully');
     
-    // Insert default admin users if they don't exist
+    // Insert default admin users
     await insertDefaultAdmins();
     
   } catch (error) {
