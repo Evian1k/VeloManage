@@ -207,6 +207,14 @@ export const AuthProvider = ({ children }) => {
         throw new Error('Please fill in all required fields.');
       }
 
+      // Simple email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userData.email)) {
+        throw new Error('Please enter a valid email address.');
+      }
+      
+      console.log('✅ Email format validated');
+
       // Try backend first if available
       if (backendAvailable) {
         try {
@@ -228,14 +236,6 @@ export const AuthProvider = ({ children }) => {
       
       console.log('✅ Required fields validated');
       
-      // Simple email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(userData.email)) {
-        throw new Error('Please enter a valid email address.');
-      }
-      
-      console.log('✅ Email format validated');
-      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -247,7 +247,7 @@ export const AuthProvider = ({ children }) => {
         console.warn('⚠️ Storage initialization warning:', storageError);
       }
       
-      // Check if user already exists
+      // Check if user already exists (by email or phone)
       let allUsers = {};
       try {
         allUsers = userStorage.getAllUsers() || {};
@@ -258,12 +258,15 @@ export const AuthProvider = ({ children }) => {
       }
       
       const existingUser = Object.values(allUsers).find(u => 
-        u && u.email && u.email.toLowerCase() === userData.email.toLowerCase()
+        u && u.email && (
+          u.email.toLowerCase() === userData.email.toLowerCase().trim() ||
+          (userData.phone && u.phone && u.phone === userData.phone.trim())
+        )
       );
       
       if (existingUser) {
         console.error('❌ User already exists:', existingUser.email);
-        throw new Error('User already exists with this email. Please login instead.');
+        throw new Error('User already exists with this email or phone. Please login instead.');
       }
       
       console.log('✅ No existing user found, proceeding with registration');
