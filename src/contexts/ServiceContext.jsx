@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { requestStorage, notificationStorage } from '@/utils/storage';
 
 const ServiceContext = createContext();
 
@@ -45,16 +46,24 @@ export const ServiceProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const savedRequests = localStorage.getItem(`autocare_requests_${user.id}`);
-      setRequests(savedRequests ? JSON.parse(savedRequests) : []);
+      // Load all requests (global storage for admin access)
+      const allRequests = requestStorage.getAllRequests();
+      setRequests(allRequests);
       
-      const savedNotifications = localStorage.getItem(`autocare_notifications_${user.id}`);
-      setNotifications(savedNotifications ? JSON.parse(savedNotifications) : []);
+      // Load user's notifications
+      const userNotifications = notificationStorage.getUserNotifications(user.id);
+      setNotifications(userNotifications);
 
+      // Load vehicles (global for now, but filter by user)
       const savedVehicles = localStorage.getItem(`autocare_vehicles`);
       setVehicles(savedVehicles ? JSON.parse(savedVehicles) : initialVehicles);
       
       generateServiceReminders();
+    } else {
+      // Clear data when no user
+      setRequests([]);
+      setNotifications([]);
+      setVehicles([]);
     }
   }, [user]);
 
@@ -78,7 +87,7 @@ export const ServiceProvider = ({ children }) => {
         const exists = prev.some(n => n.type === 'service_reminder');
         if (!exists) {
           const updated = [reminder, ...prev];
-          localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updated));
+          notificationStorage.saveUserNotifications(user.id, updated);
           return updated;
         }
         return prev;
@@ -88,72 +97,70 @@ export const ServiceProvider = ({ children }) => {
 
   const createServiceRequest = (requestData) => {
     const newRequest = {
-      id: `REQ_${Date.now()}`,
+      id: Date.now(), // Use timestamp as ID
       userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
       ...requestData,
       status: 'pending',
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       estimatedCompletion: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
       suggestedParts: SPARE_PARTS[requestData.serviceType] || [],
       trackingEnabled: requestData.serviceType === 'Vehicle Pickup'
     };
     
-    const updatedRequests = [newRequest, ...requests];
-    setRequests(updatedRequests);
-    localStorage.setItem(`autocare_requests_${user.id}`, JSON.stringify(updatedRequests));
+    // Use centralized storage
+    const addedRequest = requestStorage.addRequest(newRequest);
     
-    if (user.isAdmin) {
-      const notification = {
-        id: `notif_${Date.now()}`,
-        type: 'new_request',
-        title: 'New Service Request',
-        message: `${newRequest.serviceType} requested by ${user.name}`,
-        timestamp: new Date().toISOString(),
-        read: false,
-        requestId: newRequest.id
-      };
-      
-      const updatedNotifications = [notification, ...notifications];
-      setNotifications(updatedNotifications);
-      localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updatedNotifications));
-    }
+    // Update local state with all requests
+    const allRequests = requestStorage.getAllRequests();
+    setRequests(allRequests);
     
-    return newRequest;
+    // Create notification for admins
+    const notification = {
+      id: `notif_${Date.now()}`,
+      type: 'new_request',
+      title: 'New Service Request',
+      message: `${newRequest.serviceType} requested by ${user.name}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+      requestId: addedRequest.id
+    };
+    
+    // Save notification globally for all admins to see
+    notificationStorage.addGlobalNotification(notification);
+    
+    return addedRequest;
   };
 
   const updateRequestStatus = (requestId, status, adminNotes = '') => {
-    const allRequests = getAllRequests();
-    const updatedRequests = allRequests.map(req => 
-      req.id === requestId 
-        ? { 
-            ...req, 
-            status, 
-            adminNotes,
-            updatedAt: new Date().toISOString(),
-            ...(status === 'approved' && req.trackingEnabled && {
-              truckLocation: { lat: -1.2921, lng: 36.8219 }, // Nairobi coordinates
-              estimatedArrival: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
-            })
-          }
-        : req
-    );
-    
-    // This is tricky with localStorage for multiple users. We'll just update the current user's view.
-    // A real backend would handle this better.
-    const userRequests = updatedRequests.filter(r => r.userId === user.id);
-    setRequests(userRequests);
-    localStorage.setItem(`autocare_requests_${user.id}`, JSON.stringify(userRequests));
-
-    // A bit of a hack to update other users' data in localStorage
-    const otherUsersRequests = updatedRequests.filter(r => r.userId !== user.id);
-    const userIds = [...new Set(otherUsersRequests.map(r => r.userId))];
-    userIds.forEach(uid => {
-        const specificUserRequests = otherUsersRequests.filter(r => r.userId === uid);
-        localStorage.setItem(`autocare_requests_${uid}`, JSON.stringify(specificUserRequests));
+    // Update using centralized storage
+    const updatedRequest = requestStorage.updateRequest(requestId, {
+      status,
+      adminNotes,
+      ...(status === 'approved' && {
+        truckLocation: { lat: -1.2921, lng: 36.8219 }, // Nairobi coordinates
+        estimatedArrival: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString()
+      })
     });
     
-    const request = updatedRequests.find(req => req.id === requestId);
+    // Update local state with all requests
+    const allRequests = requestStorage.getAllRequests();
+    setRequests(allRequests);
+    
+    const request = updatedRequest;
     if (request) {
+      // Trigger notification for service update
+      window.dispatchEvent(new CustomEvent('serviceUpdate', { 
+        detail: { 
+          requestId, 
+          status,
+          type: 'service',
+          userId: request.userId
+        } 
+      }));
+      
       const notification = {
         id: `notif_${Date.now()}`,
         type: 'status_update',
@@ -175,19 +182,7 @@ export const ServiceProvider = ({ children }) => {
       notif.id === notificationId ? { ...notif, read: true } : notif
     );
     setNotifications(updatedNotifications);
-    localStorage.setItem(`autocare_notifications_${user.id}`, JSON.stringify(updatedNotifications));
-  };
-
-  const getAllRequests = () => {
-    const allRequests = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('autocare_requests_')) {
-        const userRequests = JSON.parse(localStorage.getItem(key) || '[]');
-        allRequests.push(...userRequests);
-      }
-    }
-    return allRequests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    notificationStorage.saveUserNotifications(user.id, updatedNotifications);
   };
 
   const addVehicle = (vehicleData) => {
@@ -214,7 +209,7 @@ export const ServiceProvider = ({ children }) => {
   };
 
   const value = {
-    requests: user?.isAdmin ? getAllRequests() : requests,
+    requests: requests, // All requests are now loaded globally in useEffect
     notifications,
     vehicles,
     serviceTypes: SERVICE_TYPES,

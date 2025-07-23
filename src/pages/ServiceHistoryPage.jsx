@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, Wrench, Truck, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';

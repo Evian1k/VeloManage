@@ -18,7 +18,9 @@ const UserMessages = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(scrollToBottom, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const handleSendMessage = (e) => {
     e.preventDefault();
@@ -62,9 +64,14 @@ const UserMessages = () => {
                 }`}
               >
                 <p className="text-sm">{message.text}</p>
-                <p className="text-xs opacity-70 mt-1 text-right">
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-xs opacity-70">
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {message.isAutoReply && (
+                    <span className="text-xs bg-white/20 px-1 rounded text-gray-300">Auto</span>
+                  )}
+                </div>
               </div>
 
               {(message.sender === 'user' && !user.isAdmin) || (message.sender === 'admin' && user.isAdmin) ? (

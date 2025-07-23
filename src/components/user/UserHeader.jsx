@@ -7,8 +7,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/components/ui/use-toast';
+import NotificationBell from '@/components/common/NotificationBell';
+import LiveStatusIndicator from '@/components/common/LiveStatusIndicator';
 
-const UserHeader = ({ unreadCount, onNotificationClick }) => {
+const UserHeader = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -34,24 +36,11 @@ const UserHeader = ({ unreadCount, onNotificationClick }) => {
           Welcome back, {user.name}!
         </h1>
         <p className="text-gray-300">Manage your vehicle services and track requests</p>
+        <LiveStatusIndicator className="mt-2" />
       </div>
       
       <div className="flex items-center gap-4 mt-4 md:mt-0">
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-            onClick={onNotificationClick}
-          >
-            <Bell className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <Badge className="absolute -top-2 -right-2 w-5 h-5 p-0 flex items-center justify-center bg-red-500 text-white notification-badge">
-                {unreadCount}
-              </Badge>
-            )}
-          </Button>
-        </div>
+        <NotificationBell />
         
         <Avatar>
           <AvatarFallback className="bg-red-600 text-white">

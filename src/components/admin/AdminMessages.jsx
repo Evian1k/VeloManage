@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const AdminMessages = () => {
   const { user } = useAuth();
-  const { conversations, sendMessageToUser, usersWithMessages } = useMessages();
+  const { conversations, sendMessageToUser, usersWithMessages, refreshUsersWithMessages } = useMessages();
   const [selectedUser, setSelectedUser] = useState(null);
   const [newMessage, setNewMessage] = useState('');
   const messagesEndRef = useRef(null);
@@ -20,6 +20,21 @@ const AdminMessages = () => {
       setSelectedUser(usersWithMessages[0]);
     }
   }, [usersWithMessages, selectedUser]);
+
+  // Update conversations when new messages arrive
+  useEffect(() => {
+    // This will trigger re-render when conversations update
+  }, [conversations]);
+
+  // Listen for new user messages
+  useEffect(() => {
+    const handleNewUserMessage = () => {
+      refreshUsersWithMessages();
+    };
+
+    window.addEventListener('newUserMessage', handleNewUserMessage);
+    return () => window.removeEventListener('newUserMessage', handleNewUserMessage);
+  }, [refreshUsersWithMessages]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -39,6 +54,17 @@ const AdminMessages = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="col-span-3 mb-4 p-4 bg-yellow-900/20 border border-yellow-600 rounded text-yellow-200 text-sm">
+          <strong>Debug Info:</strong>
+          <br />Users with messages: {usersWithMessages.length}
+          <br />Selected user: {selectedUser?.name || 'None'}
+          <br />Conversations keys: {Object.keys(conversations).join(', ')}
+          <br />Current messages: {currentMessages.length}
+        </div>
+      )}
+      
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -47,28 +73,41 @@ const AdminMessages = () => {
       >
         <Card className="glass-effect border-red-900/30 h-full flex flex-col">
           <CardHeader>
-            <CardTitle className="text-white">Conversations</CardTitle>
+            <CardTitle className="text-white">Conversations ({usersWithMessages.length})</CardTitle>
           </CardHeader>
           <CardContent className="flex-grow overflow-y-auto space-y-2">
-            {usersWithMessages.map((convUser) => (
-              <div
-                key={convUser.id}
-                onClick={() => setSelectedUser(convUser)}
-                className={`p-3 rounded-lg cursor-pointer flex items-center gap-3 transition-colors ${
-                  selectedUser?.id === convUser.id ? 'bg-red-600/50' : 'hover:bg-white/10'
-                }`}
-              >
-                <Avatar>
-                  <AvatarFallback className="bg-blue-600 text-white">{convUser.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="font-semibold text-white">{convUser.name}</p>
-                  <p className="text-sm text-gray-400 truncate">
-                    {conversations[convUser.id]?.slice(-1)[0]?.text || 'No messages yet'}
-                  </p>
+            {usersWithMessages.length > 0 ? (
+              usersWithMessages.map((convUser) => (
+                <div
+                  key={convUser.id}
+                  onClick={() => setSelectedUser(convUser)}
+                  className={`p-3 rounded-lg cursor-pointer flex items-center gap-3 transition-colors ${
+                    selectedUser?.id === convUser.id ? 'bg-red-600/50' : 'hover:bg-white/10'
+                  }`}
+                >
+                  <Avatar>
+                    <AvatarFallback className="bg-blue-600 text-white">{convUser.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-white">{convUser.name}</p>
+                    <p className="text-sm text-gray-400 truncate">
+                      {conversations[convUser.id]?.slice(-1)[0]?.text || 'No messages yet'}
+                    </p>
+                  </div>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-400">No conversations yet</p>
+                <p className="text-sm text-gray-500 mt-1">Messages from users will appear here</p>
+                <button 
+                  onClick={() => refreshUsersWithMessages()}
+                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Refresh Messages
+                </button>
               </div>
-            ))}
+            )}
           </CardContent>
         </Card>
       </motion.div>

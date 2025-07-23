@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { Car, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +50,7 @@ const RegisterPage = () => {
       const user = await register(formData);
       toast({
         title: "Account created!",
-        description: `Welcome to AutoCare Pro, ${user.name}!`,
+        description: `Welcome to AutoCare Pro, ${user.name}! SMS notifications have been sent to you and our admin team.`,
       });
       
       if (user.isAdmin) {
@@ -59,9 +59,10 @@ const RegisterPage = () => {
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
         title: "Registration failed",
-        description: "Please try again later.",
+        description: error.message || "Please try again later.",
         variant: "destructive",
       });
     } finally {
