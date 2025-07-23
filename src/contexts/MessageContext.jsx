@@ -80,7 +80,6 @@ export const MessageProvider = ({ children }) => {
           setConversations({ [user.id]: savedMessages });
         }
       }
-      }
     } catch (error) {
       console.error('❌ Error loading messages:', error);
       // Fallback to localStorage on error
