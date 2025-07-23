@@ -62,121 +62,192 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (email, password) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if this is an admin user
-    const adminUser = ADMIN_USERS[email.toLowerCase()];
-    
-    if (adminUser) {
-      // Validate admin password
-      if (password !== adminUser.password) {
-        throw new Error('Invalid admin credentials');
+    try {
+      console.log('🔑 Starting login for:', email);
+      
+      // Basic validation
+      if (!email || !password) {
+        throw new Error('Please enter both email and password.');
       }
       
-      const userData = {
-        id: adminUser.id,
-        email: email.toLowerCase(),
-        name: adminUser.name,
-        role: adminUser.role,
-        isAdmin: true,
-        joinDate: new Date().toISOString(),
-        lastLogin: new Date().toISOString()
-      };
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
       
-      setUser(userData);
-      userStorage.saveCurrentUser(userData);
-      return userData;
-    } else {
-      // Check if user already exists (by email or phone)
-      const allUsers = userStorage.getAllUsers();
-      const existingUser = Object.values(allUsers).find(u => 
-        u.email.toLowerCase() === email.toLowerCase() || 
-        u.phone === email // Allow login with phone number
-      );
+      // Check if this is an admin user
+      const adminUser = ADMIN_USERS[email.toLowerCase().trim()];
       
-      if (existingUser) {
-        // User exists, log them in with existing data
+      if (adminUser) {
+        console.log('👑 Admin login detected');
+        
+        // Validate admin password
+        if (password !== adminUser.password) {
+          console.error('❌ Invalid admin password');
+          throw new Error('Invalid admin credentials');
+        }
+        
         const userData = {
-          ...existingUser,
+          id: adminUser.id,
+          email: email.toLowerCase().trim(),
+          name: adminUser.name,
+          role: adminUser.role,
+          isAdmin: true,
+          joinDate: new Date().toISOString(),
           lastLogin: new Date().toISOString()
         };
         
         setUser(userData);
         userStorage.saveCurrentUser(userData);
+        console.log('✅ Admin login successful');
         return userData;
       } else {
-        // New user - should register first
-        throw new Error('User not found. Please register first.');
+        console.log('👤 Regular user login');
+        
+        // Get all users
+        let allUsers = {};
+        try {
+          allUsers = userStorage.getAllUsers() || {};
+        } catch (error) {
+          console.warn('⚠️ Could not retrieve users:', error);
+          allUsers = {};
+        }
+        
+        // Check if user exists (by email or phone)
+        const existingUser = Object.values(allUsers).find(u => 
+          u && u.email && (
+            u.email.toLowerCase() === email.toLowerCase().trim() || 
+            (u.phone && u.phone === email.trim()) // Allow login with phone number
+          )
+        );
+        
+        if (existingUser) {
+          console.log('✅ User found, logging in');
+          
+          // User exists, log them in with existing data
+          const userData = {
+            ...existingUser,
+            lastLogin: new Date().toISOString()
+          };
+          
+          setUser(userData);
+          userStorage.saveCurrentUser(userData);
+          console.log('✅ User login successful');
+          return userData;
+        } else {
+          console.error('❌ User not found');
+          throw new Error('User not found. Please register first.');
+        }
       }
+    } catch (error) {
+      console.error('💥 Login failed:', error.message);
+      throw error;
     }
   };
 
   const register = async (userData) => {
     try {
-      console.log('Starting registration for:', userData.email);
+      console.log('🚀 Starting registration for:', userData.email);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Validate required fields
-      console.log('Validating required fields...');
+      // Validate required fields first
       if (!userData.name || !userData.email || !userData.password) {
+        console.error('❌ Missing required fields:', { 
+          name: !!userData.name, 
+          email: !!userData.email, 
+          password: !!userData.password 
+        });
         throw new Error('Please fill in all required fields.');
       }
       
+      console.log('✅ Required fields validated');
+      
+      // Simple email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(userData.email)) {
+        throw new Error('Please enter a valid email address.');
+      }
+      
+      console.log('✅ Email format validated');
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Initialize storage if needed
+      try {
+        initializeStorage();
+        console.log('✅ Storage initialized');
+      } catch (storageError) {
+        console.warn('⚠️ Storage initialization warning:', storageError);
+      }
+      
       // Check if user already exists
-      console.log('Checking for existing users...');
-      const allUsers = userStorage.getAllUsers();
-      console.log('All users:', Object.keys(allUsers));
+      let allUsers = {};
+      try {
+        allUsers = userStorage.getAllUsers() || {};
+        console.log('✅ Retrieved existing users:', Object.keys(allUsers).length);
+      } catch (storageError) {
+        console.warn('⚠️ Could not retrieve existing users:', storageError);
+        allUsers = {};
+      }
       
       const existingUser = Object.values(allUsers).find(u => 
-        u.email.toLowerCase() === userData.email.toLowerCase() ||
-        (userData.phone && u.phone === userData.phone)
+        u && u.email && u.email.toLowerCase() === userData.email.toLowerCase()
       );
       
       if (existingUser) {
-        throw new Error('User already exists with this email or phone. Please login instead.');
+        console.error('❌ User already exists:', existingUser.email);
+        throw new Error('User already exists with this email. Please login instead.');
       }
       
-      console.log('Creating new user...');
+      console.log('✅ No existing user found, proceeding with registration');
+      
+      // Create new user
       const newUser = {
         id: Date.now(),
-        ...userData,
-        email: userData.email.toLowerCase(),
-        isAdmin: Object.keys(ADMIN_USERS).includes(userData.email.toLowerCase()),
+        name: userData.name.trim(),
+        email: userData.email.toLowerCase().trim(),
+        phone: userData.phone ? userData.phone.trim() : '',
+        isAdmin: Object.keys(ADMIN_USERS).includes(userData.email.toLowerCase().trim()),
         joinDate: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         vehicleCount: 1,
         lastService: null
       };
       
-      console.log('New user created:', newUser);
+      console.log('✅ New user object created:', { 
+        id: newUser.id, 
+        email: newUser.email, 
+        isAdmin: newUser.isAdmin 
+      });
       
-      console.log('Setting user state...');
+      // Set user in state first
       setUser(newUser);
+      console.log('✅ User state updated');
       
-      console.log('Saving user to storage...');
-      const saveResult = userStorage.saveCurrentUser(newUser);
-      console.log('Save result:', saveResult);
-      
-      // Send SMS notifications (don't fail registration if SMS fails)
+      // Save to storage
       try {
-        console.log('Sending SMS notifications...');
-        await Promise.all([
-          sendRegistrationNotification(newUser),
-          sendWelcomeSMS(newUser)
-        ]);
-        console.log('SMS notifications sent successfully');
-      } catch (smsError) {
-        // Log SMS error but don't fail registration
-        console.warn('SMS notification failed:', smsError);
+        const saveResult = userStorage.saveCurrentUser(newUser);
+        console.log('✅ User saved to storage:', saveResult);
+      } catch (saveError) {
+        console.error('❌ Failed to save user to storage:', saveError);
+        // Continue anyway - registration succeeded even if storage fails
       }
       
-      console.log('Registration completed successfully');
+      // Send SMS notifications (optional - don't fail registration)
+      setTimeout(async () => {
+        try {
+          console.log('📱 Sending SMS notifications...');
+          await sendRegistrationNotification(newUser);
+          await sendWelcomeSMS(newUser);
+          console.log('✅ SMS notifications sent');
+        } catch (smsError) {
+          console.warn('⚠️ SMS notification failed (non-critical):', smsError);
+        }
+      }, 100);
+      
+      console.log('🎉 Registration completed successfully!');
       return newUser;
+      
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('💥 Registration failed:', error.message);
       throw error;
     }
   };
