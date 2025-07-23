@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ServiceProvider } from '@/contexts/ServiceContext';
@@ -19,15 +19,16 @@ import SettingsPage from '@/pages/SettingsPage';
 
 function App() {
   return (
-    <AuthProvider>
-      <ServiceProvider>
-        <MessageProvider>
-          <Router>
-            <div className="min-h-screen">
-              <Helmet>
-                <title>AutoCare Pro - Premium Car Management System</title>
-                <meta name="description" content="Professional car management and service system with real-time tracking, automated reminders, and comprehensive admin controls." />
-              </Helmet>
+    <HelmetProvider>
+      <AuthProvider>
+        <ServiceProvider>
+          <MessageProvider>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <div className="min-h-screen">
+                <Helmet>
+                  <title>AutoCare Pro - Premium Car Management System</title>
+                  <meta name="description" content="Professional car management and service system with real-time tracking, automated reminders, and comprehensive admin controls." />
+                </Helmet>
               
               <Routes>
                 <Route path="/" element={<LandingPage />} />
@@ -92,11 +93,12 @@ function App() {
               </Routes>
               
               <Toaster />
-            </div>
-          </Router>
-        </MessageProvider>
-      </ServiceProvider>
-    </AuthProvider>
+              </div>
+            </Router>
+          </MessageProvider>
+        </ServiceProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

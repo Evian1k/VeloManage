@@ -2,7 +2,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { Car, Shield, Clock, MapPin, Users, Wrench } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
