@@ -54,6 +54,17 @@ const AdminMessages = () => {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[80vh]">
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="col-span-3 mb-4 p-4 bg-yellow-900/20 border border-yellow-600 rounded text-yellow-200 text-sm">
+          <strong>Debug Info:</strong>
+          <br />Users with messages: {usersWithMessages.length}
+          <br />Selected user: {selectedUser?.name || 'None'}
+          <br />Conversations keys: {Object.keys(conversations).join(', ')}
+          <br />Current messages: {currentMessages.length}
+        </div>
+      )}
+      
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -62,7 +73,7 @@ const AdminMessages = () => {
       >
         <Card className="glass-effect border-red-900/30 h-full flex flex-col">
           <CardHeader>
-            <CardTitle className="text-white">Conversations</CardTitle>
+            <CardTitle className="text-white">Conversations ({usersWithMessages.length})</CardTitle>
           </CardHeader>
           <CardContent className="flex-grow overflow-y-auto space-y-2">
             {usersWithMessages.length > 0 ? (
@@ -89,6 +100,12 @@ const AdminMessages = () => {
               <div className="text-center py-8">
                 <p className="text-gray-400">No conversations yet</p>
                 <p className="text-sm text-gray-500 mt-1">Messages from users will appear here</p>
+                <button 
+                  onClick={() => refreshUsersWithMessages()}
+                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                  Refresh Messages
+                </button>
               </div>
             )}
           </CardContent>

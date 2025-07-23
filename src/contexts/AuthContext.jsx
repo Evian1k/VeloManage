@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userStorage, initializeStorage } from '@/utils/storage';
+import { sendRegistrationNotification, sendWelcomeSMS } from '@/utils/smsService';
 
 const AuthContext = createContext();
 
@@ -87,20 +88,27 @@ export const AuthProvider = ({ children }) => {
       userStorage.saveCurrentUser(userData);
       return userData;
     } else {
-      // Regular user login (any email/password combination)
-      const userData = {
-        id: Date.now(),
-        email: email.toLowerCase(),
-        name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        isAdmin: false,
-        joinDate: new Date().toISOString(),
-        vehicleCount: Math.floor(Math.random() * 3) + 1,
-        lastService: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString()
-      };
+      // Check if user already exists (by email or phone)
+      const allUsers = userStorage.getAllUsers();
+      const existingUser = Object.values(allUsers).find(u => 
+        u.email.toLowerCase() === email.toLowerCase() || 
+        u.phone === email // Allow login with phone number
+      );
       
-      setUser(userData);
-      userStorage.saveCurrentUser(userData);
-      return userData;
+      if (existingUser) {
+        // User exists, log them in with existing data
+        const userData = {
+          ...existingUser,
+          lastLogin: new Date().toISOString()
+        };
+        
+        setUser(userData);
+        userStorage.saveCurrentUser(userData);
+        return userData;
+      } else {
+        // New user - should register first
+        throw new Error('User not found. Please register first.');
+      }
     }
   };
 
@@ -108,17 +116,34 @@ export const AuthProvider = ({ children }) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
+    // Check if user already exists
+    const allUsers = userStorage.getAllUsers();
+    const existingUser = Object.values(allUsers).find(u => u.email.toLowerCase() === userData.email.toLowerCase());
+    
+    if (existingUser) {
+      throw new Error('User already exists. Please login instead.');
+    }
+    
     const newUser = {
       id: Date.now(),
       ...userData,
-      isAdmin: ADMIN_USERS.includes(userData.email),
+      email: userData.email.toLowerCase(),
+      isAdmin: Object.keys(ADMIN_USERS).includes(userData.email.toLowerCase()),
       joinDate: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
       vehicleCount: 1,
       lastService: null
     };
     
     setUser(newUser);
     userStorage.saveCurrentUser(newUser);
+    
+    // Send SMS notifications
+    await Promise.all([
+      sendRegistrationNotification(newUser),
+      sendWelcomeSMS(newUser)
+    ]);
+    
     return newUser;
   };
 
