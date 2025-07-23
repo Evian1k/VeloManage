@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { userStorage, initializeStorage } from '@/utils/storage';
 import { sendRegistrationNotification, sendWelcomeSMS } from '@/utils/smsService';
+import apiService from '@/utils/api';
 
 const AuthContext = createContext();
 
@@ -48,17 +49,48 @@ const ADMIN_USERS = {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [backendAvailable, setBackendAvailable] = useState(false);
 
   useEffect(() => {
-    // Initialize storage system
-    initializeStorage();
-    
-    // Load saved user
-    const savedUser = userStorage.getCurrentUser();
-    if (savedUser) {
-      setUser(savedUser);
-    }
-    setLoading(false);
+    // Check backend availability and load user
+    const loadUser = async () => {
+      try {
+        // Initialize storage system
+        initializeStorage();
+        
+        console.log('🔄 Checking backend availability...');
+        const isBackendUp = await apiService.isBackendAvailable();
+        setBackendAvailable(isBackendUp);
+
+        if (isBackendUp) {
+          console.log('✅ Backend available - Loading user from API');
+          try {
+            const response = await apiService.getCurrentUser();
+            if (response.success && response.data.user) {
+              console.log('✅ User loaded from backend:', response.data.user.email);
+              setUser(response.data.user);
+              return;
+            }
+          } catch (error) {
+            console.log('⚠️ Failed to load user from backend, checking localStorage');
+          }
+        }
+
+        // Fallback to localStorage
+        console.log('📱 Using localStorage mode');
+        const savedUser = userStorage.getCurrentUser();
+        if (savedUser) {
+          console.log('✅ User loaded from localStorage:', savedUser.email);
+          setUser(savedUser);
+        }
+      } catch (error) {
+        console.error('❌ Error loading user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
   }, []);
 
   const login = async (email, password) => {
@@ -69,6 +101,24 @@ export const AuthProvider = ({ children }) => {
       if (!email || !password) {
         throw new Error('Please enter both email and password.');
       }
+
+      // Try backend first if available
+      if (backendAvailable) {
+        try {
+          console.log('🌐 Using backend login');
+          const response = await apiService.login(email, password);
+          if (response.success && response.data.user) {
+            setUser(response.data.user);
+            console.log('✅ Backend login successful');
+            return response.data.user;
+          }
+        } catch (error) {
+          console.log('⚠️ Backend login failed, trying localStorage');
+        }
+      }
+
+      // Fallback to localStorage mode
+      console.log('📱 Using localStorage login');
       
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -156,6 +206,25 @@ export const AuthProvider = ({ children }) => {
         });
         throw new Error('Please fill in all required fields.');
       }
+
+      // Try backend first if available
+      if (backendAvailable) {
+        try {
+          console.log('🌐 Using backend registration');
+          const response = await apiService.register(userData);
+          if (response.success && response.data.user) {
+            setUser(response.data.user);
+            console.log('✅ Backend registration successful');
+            return response.data.user;
+          }
+        } catch (error) {
+          console.log('⚠️ Backend registration failed, trying localStorage');
+          // Don't throw here, fall back to localStorage
+        }
+      }
+
+      // Fallback to localStorage mode
+      console.log('📱 Using localStorage registration');
       
       console.log('✅ Required fields validated');
       
@@ -271,7 +340,8 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     loading,
-    updateUser
+    updateUser,
+    backendAvailable
   };
 
   return (
