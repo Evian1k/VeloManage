@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import { messageStorage, userStorage } from '@/utils/storage';
+import apiService from '@/utils/api';
 
 const MessageContext = createContext();
 
@@ -25,126 +26,209 @@ const getUsersWithMessages = () => {
 // Save user info when they send their first message
 const saveUserInfo = (user) => {
   messageStorage.saveMessageUser(user.id, {
+    id: user.id,
     name: user.name,
     email: user.email
   });
 };
 
-
 export const MessageProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, backendAvailable } = useAuth();
   const [conversations, setConversations] = useState({});
   const [usersWithMessages, setUsersWithMessages] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const loadMessages = async () => {
+    if (!user) {
+      setConversations({});
+      setUsersWithMessages([]);
+      return;
+    }
+
+    setLoading(true);
     try {
-      if (user?.isAdmin) {
-        console.log('Loading admin conversations...');
-        // Load all conversations for admin
-        const allConvos = getAllConversations();
-        console.log('All conversations:', allConvos);
-        setConversations(allConvos);
+      if (backendAvailable) {
+        console.log('📡 Loading messages from backend...');
         
-        // Load users who have sent messages
-        const messageUsers = getUsersWithMessages();
-        console.log('Message users:', messageUsers);
-        setUsersWithMessages(Object.values(messageUsers));
-      } else if (user) {
-        console.log('Loading user messages for:', user.id);
-        // Load user's own messages
-        const savedMessages = messageStorage.getUserMessages(user.id);
-        console.log('Saved messages:', savedMessages);
-        setConversations({ [user.id]: savedMessages });
+        if (user.isAdmin || user.is_admin) {
+          // Load conversations for admin
+          const response = await apiService.getConversations();
+          if (response.success) {
+            console.log('✅ Admin conversations loaded:', response.data);
+            setUsersWithMessages(response.data);
+            
+            // Load first conversation messages if exists
+            if (response.data.length > 0) {
+              const firstConv = response.data[0];
+              const messagesResponse = await apiService.getMessages(firstConv.conversation_id);
+              if (messagesResponse.success) {
+                setConversations({ [firstConv.conversation_id]: messagesResponse.data });
+              }
+            }
+          }
+        } else {
+          // Load user's own messages
+          const userConversationId = `user_${user.id}_admin`;
+          const response = await apiService.getMessages(userConversationId);
+          if (response.success) {
+            console.log('✅ User messages loaded:', response.data);
+            setConversations({ [user.id]: response.data });
+          }
+        }
       } else {
-        setConversations({});
-        setUsersWithMessages([]);
+        console.log('📱 Loading messages from localStorage...');
+        // Fallback to localStorage
+        if (user.isAdmin || user.is_admin) {
+          const allConvos = getAllConversations();
+          setConversations(allConvos);
+          
+          const messageUsers = getUsersWithMessages();
+          setUsersWithMessages(Object.values(messageUsers));
+        } else {
+          const savedMessages = messageStorage.getUserMessages(user.id);
+          setConversations({ [user.id]: savedMessages });
+        }
       }
     } catch (error) {
-      console.error('Error loading messages:', error);
-    }
-  }, [user]);
-
-  const sendMessage = (text) => {
-    if (!user || user.isAdmin) return;
-    
-    // Save user info for admin to see
-    saveUserInfo(user);
-    
-    const newMessage = {
-      id: Date.now(),
-      sender: 'user',
-      text,
-      timestamp: new Date().toISOString()
-    };
-    
-    const userMessages = conversations[user.id] || [];
-    const updatedMessages = [...userMessages, newMessage];
-    
-    // Update state immediately
-    setConversations(prev => ({ ...prev, [user.id]: updatedMessages }));
-    messageStorage.saveUserMessages(user.id, updatedMessages);
-
-    // Force refresh of admin's user list if this is a new user
-    if (userMessages.length === 0) {
-      // Trigger a custom event for real-time updates
-      window.dispatchEvent(new CustomEvent('newUserMessage', { detail: { userId: user.id } }));
-    }
-
-    // Trigger notification for admins
-    window.dispatchEvent(new CustomEvent('newMessage', { 
-      detail: { 
-        senderId: user.id, 
-        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-        type: 'message'
-      } 
-    }));
-
-    // Send auto-reply only for the first message or if no admin has replied yet
-    const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
-    
-    if (!hasAdminReplied) {
-      setTimeout(() => {
-        const reply = {
-          id: Date.now() + 1,
-          sender: 'admin',
-          text: "Thanks for your message! An admin will review it shortly and get back to you.",
-          timestamp: new Date().toISOString(),
-          isAutoReply: true
-        };
-        
-        const messagesWithReply = [...updatedMessages, reply];
-        setConversations(prev => ({ ...prev, [user.id]: messagesWithReply }));
-        messageStorage.saveUserMessages(user.id, messagesWithReply);
-      }, 1000);
+      console.error('❌ Error loading messages:', error);
+      // Fallback to localStorage on error
+      try {
+        if (user.isAdmin || user.is_admin) {
+          const allConvos = getAllConversations();
+          setConversations(allConvos);
+          const messageUsers = getUsersWithMessages();
+          setUsersWithMessages(Object.values(messageUsers));
+        } else {
+          const savedMessages = messageStorage.getUserMessages(user.id);
+          setConversations({ [user.id]: savedMessages });
+        }
+      } catch (fallbackError) {
+        console.error('❌ Fallback loading failed:', fallbackError);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  const sendMessageToUser = (userId, text) => {
-    if (!user || !user.isAdmin) return;
+  useEffect(() => {
+    loadMessages();
+  }, [user, backendAvailable]);
 
-    const newMessage = {
-      id: Date.now(),
-      sender: 'admin',
-      text,
-      timestamp: new Date().toISOString(),
-      isAutoReply: false
-    };
-
-    const userMessages = conversations[userId] || [];
-    const updatedMessages = [...userMessages, newMessage];
+  const sendMessage = async (text) => {
+    if (!user || user.isAdmin || user.is_admin) return;
     
-    // Update state immediately
-    setConversations(prev => ({ ...prev, [userId]: updatedMessages }));
-    messageStorage.saveUserMessages(userId, updatedMessages);
+    try {
+      if (backendAvailable) {
+        console.log('📡 Sending message via backend...');
+        const response = await apiService.sendMessage(text);
+        if (response.success) {
+          console.log('✅ Message sent via backend');
+          // Reload messages to get the latest
+          await loadMessages();
+          return;
+        }
+      }
+      
+      console.log('📱 Sending message via localStorage...');
+      // Fallback to localStorage
+      saveUserInfo(user);
+      
+      const newMessage = {
+        id: Date.now(),
+        sender: 'user',
+        text,
+        timestamp: new Date().toISOString()
+      };
+      
+      const userMessages = conversations[user.id] || [];
+      const updatedMessages = [...userMessages, newMessage];
+      
+      // Update state immediately
+      setConversations(prev => ({ ...prev, [user.id]: updatedMessages }));
+      messageStorage.saveUserMessages(user.id, updatedMessages);
 
-    // Trigger notification for the user
-    window.dispatchEvent(new CustomEvent('newMessage', { 
-      detail: { 
-        senderId: user.id, 
-        message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
-        type: 'message'
-      } 
-    }));
+      // Force refresh of admin's user list if this is a new user
+      if (userMessages.length === 0) {
+        window.dispatchEvent(new CustomEvent('newUserMessage', { detail: { userId: user.id } }));
+      }
+
+      // Trigger notification for admins
+      window.dispatchEvent(new CustomEvent('newMessage', { 
+        detail: { 
+          senderId: user.id, 
+          message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+          type: 'message'
+        } 
+      }));
+
+      // Send auto-reply only for the first message or if no admin has replied yet
+      const hasAdminReplied = userMessages.some(msg => msg.sender === 'admin' && !msg.isAutoReply);
+      
+      if (!hasAdminReplied) {
+        setTimeout(() => {
+          const reply = {
+            id: Date.now() + 1,
+            sender: 'admin',
+            text: "Thanks for your message! An admin will review it shortly and get back to you.",
+            timestamp: new Date().toISOString(),
+            isAutoReply: true
+          };
+          
+          const messagesWithReply = [...updatedMessages, reply];
+          setConversations(prev => ({ ...prev, [user.id]: messagesWithReply }));
+          messageStorage.saveUserMessages(user.id, messagesWithReply);
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send message:', error);
+      throw error;
+    }
+  };
+
+  const sendMessageToUser = async (userId, text, conversationId = null) => {
+    if (!user || (!user.isAdmin && !user.is_admin)) return;
+
+    try {
+      if (backendAvailable) {
+        console.log('📡 Admin sending message via backend...');
+        const response = await apiService.sendMessage(text, userId, conversationId);
+        if (response.success) {
+          console.log('✅ Admin message sent via backend');
+          // Reload messages to get the latest
+          await loadMessages();
+          return;
+        }
+      }
+      
+      console.log('📱 Admin sending message via localStorage...');
+      // Fallback to localStorage
+      const newMessage = {
+        id: Date.now(),
+        sender: 'admin',
+        text,
+        timestamp: new Date().toISOString(),
+        isAutoReply: false
+      };
+
+      const userMessages = conversations[userId] || [];
+      const updatedMessages = [...userMessages, newMessage];
+      
+      // Update state immediately
+      setConversations(prev => ({ ...prev, [userId]: updatedMessages }));
+      messageStorage.saveUserMessages(userId, updatedMessages);
+
+      // Trigger notification for the user
+      window.dispatchEvent(new CustomEvent('newMessage', { 
+        detail: { 
+          senderId: user.id, 
+          message: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
+          type: 'message'
+        } 
+      }));
+    } catch (error) {
+      console.error('❌ Failed to send admin message:', error);
+      throw error;
+    }
   };
 
   // Function to refresh users list for admin
@@ -156,12 +240,14 @@ export const MessageProvider = ({ children }) => {
   };
 
   const value = {
-    messages: user && !user.isAdmin ? conversations[user.id] || [] : [],
+    messages: user && !user.isAdmin && !user.is_admin ? conversations[user.id] || [] : [],
     conversations,
     usersWithMessages,
     sendMessage,
     sendMessageToUser,
-    refreshUsersWithMessages,
+    refreshUsersWithMessages: loadMessages,
+    loading,
+    backendAvailable
   };
 
   return (

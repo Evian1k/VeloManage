@@ -13,6 +13,11 @@ dotenv.config();
 // Import configurations and routes
 import { initializeDatabase } from './config/database.js';
 import authRoutes from './routes/auth.js';
+import servicesRoutes from './routes/services.js';
+import messagesRoutes from './routes/messages.js';
+import trucksRoutes from './routes/trucks.js';
+import branchesRoutes from './routes/branches.js';
+import analyticsRoutes from './routes/analytics.js';
 
 // Create Express app
 const app = express();
@@ -104,6 +109,11 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/services', servicesRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/trucks', trucksRoutes);
+app.use('/api/branches', branchesRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

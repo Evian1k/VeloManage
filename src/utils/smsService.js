@@ -23,8 +23,6 @@ export const COMPANY_INFO = {
  */
 export const sendRegistrationNotification = async (user) => {
   try {
-    console.log('📱 Preparing admin notification for:', user.name);
-    
     const message = `
 🚗 NEW USER REGISTRATION - AutoCare Pro
 
@@ -98,8 +96,6 @@ AutoCare Pro Team
  */
 export const sendWelcomeSMS = async (user) => {
   try {
-    console.log('📱 Preparing welcome SMS for:', user.name);
-    
     if (!user.phone) {
       console.log('⚠️ No phone number provided for user, skipping welcome SMS');
       return { success: false, error: 'No phone number' };
