@@ -3,11 +3,11 @@
 
 // Admin phone numbers for notifications
 export const ADMIN_PHONES = {
-  'emmanuel.evian@autocare.com': '+254746720669',
-  'ibrahim.mohamud@autocare.com': '+254729549671', 
-  'joel.nganga@autocare.com': '+254757735896',
-  'patience.karanja@autocare.com': '+254718168860',
-  'joyrose.kinuthia@autocare.com': '+254718528547'
+  'emmanuel.evian@autocare.com': '+254700000001',
+  'ibrahim.mohamud@autocare.com': '+254700000002', 
+  'joel.nganga@autocare.com': '+254700000003',
+  'patience.karanja@autocare.com': '+254700000004',
+  'joyrose.kinuthia@autocare.com': '+254700000005'
 };
 
 // Company details
@@ -23,8 +23,6 @@ export const COMPANY_INFO = {
  */
 export const sendRegistrationNotification = async (user) => {
   try {
-    console.log('📱 Preparing admin notification for:', user.name);
-    
     const message = `
 🚗 NEW USER REGISTRATION - AutoCare Pro
 
@@ -98,8 +96,6 @@ AutoCare Pro Team
  */
 export const sendWelcomeSMS = async (user) => {
   try {
-    console.log('📱 Preparing welcome SMS for:', user.name);
-    
     if (!user.phone) {
       console.log('⚠️ No phone number provided for user, skipping welcome SMS');
       return { success: false, error: 'No phone number' };
