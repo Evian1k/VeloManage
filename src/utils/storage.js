@@ -352,6 +352,27 @@ export const notificationStorage = {
     notificationStorage.saveUserNotifications(userId, trimmed);
     
     return newNotification;
+  },
+
+  // Add global notification (for all admins)
+  addGlobalNotification: (notification) => {
+    // Get all users and add notification to all admins
+    const allUsers = userStorage.getAllUsers();
+    const adminUsers = Object.values(allUsers).filter(user => user.isAdmin);
+    
+    const newNotification = {
+      ...notification,
+      id: Date.now() + Math.random(),
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+    
+    // Add to each admin's notifications
+    adminUsers.forEach(admin => {
+      notificationStorage.addNotification(admin.id, newNotification);
+    });
+    
+    return newNotification;
   }
 };
 
